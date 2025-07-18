@@ -24,3 +24,5 @@ best approach: combine both
 6. ci/cd integration (github actions)
 
 start building in november, got other stuff going on rn
+- look at detect-secrets by Yelp
+- gitleaks patterns are good reference
