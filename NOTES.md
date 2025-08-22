@@ -26,3 +26,6 @@ best approach: combine both
 start building in november, got other stuff going on rn
 - look at detect-secrets by Yelp
 - gitleaks patterns are good reference
+- stripe key: sk_live_
+- sendgrid: SG.
+- twilio: SK[a-z0-9]{32}
