@@ -14,3 +14,9 @@ best approach: combine both
 - aws key format: AKIA[0-9A-Z]{16}
 - github pat: ghp_[a-zA-Z0-9]{36}
 - slack token: xoxb-
+
+## Implementation Plan
+1. file walker (skip .git, binaries)
+2. rule engine with yaml config
+3. entropy calculator
+4. output formatters (console, json, sarif)
