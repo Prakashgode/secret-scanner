@@ -20,3 +20,7 @@ best approach: combine both
 2. rule engine with yaml config
 3. entropy calculator
 4. output formatters (console, json, sarif)
+5. pre-commit hook integration
+6. ci/cd integration (github actions)
+
+start building in november, got other stuff going on rn
