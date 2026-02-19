@@ -23,12 +23,37 @@ def _mask_secret(text: str, visible_chars: int = 4) -> str:
     return text[:visible_chars] + "*" * (len(text) - visible_chars)
 
 
-# hardcoded rules for now, will refactor later
+# TODO: move these to a separate rules module
 RULES = [
     {
         "name": "AWS Access Key ID",
-        "pattern": r"(AKIA[0-9A-Z]{16})",
+        "pattern": r"(?:^|[^A-Za-z0-9/+=])(AKIA[0-9A-Z]{16})(?:[^A-Za-z0-9/+=]|$)",
         "severity": "CRITICAL",
+    },
+    {
+        "name": "AWS Secret Access Key",
+        "pattern": r"(?i)aws_secret_access_key\s*[=:]\s*['\"]?([A-Za-z0-9/+=]{40})['\"]?",
+        "severity": "CRITICAL",
+    },
+    {
+        "name": "GitHub Token",
+        "pattern": r"(?:^|[^A-Za-z0-9_])(gh[ps]_[A-Za-z0-9_]{36,255})(?:[^A-Za-z0-9_]|$)",
+        "severity": "HIGH",
+    },
+    {
+        "name": "Private Key",
+        "pattern": r"-----BEGIN\s+(?:RSA|EC|DSA|OPENSSH|PGP)?\s*PRIVATE\s+KEY(?:\s+BLOCK)?-----",
+        "severity": "CRITICAL",
+    },
+    {
+        "name": "JWT Token",
+        "pattern": r"(?:^|[^A-Za-z0-9_])(eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})(?:[^A-Za-z0-9_-]|$)",
+        "severity": "HIGH",
+    },
+    {
+        "name": "Generic API Key",
+        "pattern": r"(?i)(?:api[_-]?key|apikey)\s*[=:]\s*['\"]?([A-Za-z0-9_\-]{20,})['\"]?",
+        "severity": "MEDIUM",
     },
     {
         "name": "Generic Password",
