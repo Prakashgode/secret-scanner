@@ -67,3 +67,14 @@ def test_normal_code_not_flagged(scanner):
     with _temp_file(content) as path:
         findings = scanner.scan_file(path)
         assert len(findings) == 0
+
+
+def test_binary_files_skipped(scanner):
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False, mode="w") as f:
+        f.write("AKIAIOSFODNN7EXAMPLE")
+        path = f.name
+    try:
+        findings = scanner.scan_file(path)
+        assert len(findings) == 0
+    finally:
+        os.unlink(path)

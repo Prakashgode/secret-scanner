@@ -5,6 +5,22 @@ from pathlib import Path
 from typing import List, Optional
 
 
+# skip these, they'll just produce garbage matches
+BINARY_EXTENSIONS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg",
+    ".woff", ".woff2", ".ttf", ".eot",
+    ".zip", ".tar", ".gz", ".bz2", ".7z", ".rar",
+    ".exe", ".dll", ".so", ".dylib",
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+    ".pyc", ".pyo", ".class",
+}
+
+SKIP_DIRS = {
+    ".git", "node_modules", "__pycache__", ".venv", "venv",
+    "env", ".env", ".tox", ".mypy_cache", ".pytest_cache",
+}
+
+
 @dataclass
 class Finding:
     file: str
@@ -69,6 +85,11 @@ class SecretScanner:
 
     def scan_file(self, filepath: str) -> List[Finding]:
         path = Path(filepath)
+
+        # skip binary files - was crashing on images before
+        if path.suffix.lower() in BINARY_EXTENSIONS:
+            return []
+
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")
         except (OSError, PermissionError):
@@ -94,8 +115,13 @@ class SecretScanner:
     def scan_directory(self, directory: str) -> List[Finding]:
         findings: List[Finding] = []
         root = Path(directory)
+
         for dirpath, dirnames, filenames in os.walk(root):
+            # prune dirs we don't care about
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+
             for filename in filenames:
                 filepath = os.path.join(dirpath, filename)
                 findings.extend(self.scan_file(filepath))
+
         return findings
