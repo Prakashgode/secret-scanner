@@ -78,3 +78,9 @@ def test_binary_files_skipped(scanner):
         assert len(findings) == 0
     finally:
         os.unlink(path)
+
+
+def test_detects_postgres_url(scanner):
+    with _temp_file("DATABASE_URL=postgres://admin:supersecret@db.example.com:5432/mydb\n") as path:
+        findings = scanner.scan_file(path)
+        assert any(f.secret_type == "Database URL" for f in findings)
