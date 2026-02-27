@@ -84,3 +84,22 @@ def test_detects_postgres_url(scanner):
     with _temp_file("DATABASE_URL=postgres://admin:supersecret@db.example.com:5432/mydb\n") as path:
         findings = scanner.scan_file(path)
         assert any(f.secret_type == "Database URL" for f in findings)
+
+
+from secret_scanner.scanner import _shannon_entropy
+
+
+def test_high_entropy_detected(scanner):
+    with _temp_file("secret = 'a1B2c3D4e5F6g7H8i9J0kLmNoPqRsT'\n") as path:
+        findings = scanner.scan_file(path)
+        entropy_findings = [f for f in findings if f.secret_type == "High Entropy String"]
+        assert len(entropy_findings) >= 1
+
+
+def test_low_entropy_not_flagged():
+    entropy = _shannon_entropy("aaaaaaaaaaaaaaaaaaaaaaaaa")
+    assert entropy < 1.0
+
+
+def test_shannon_entropy_empty():
+    assert _shannon_entropy("") == 0.0
