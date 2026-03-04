@@ -1,6 +1,9 @@
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
+
+import yaml
 
 
 @dataclass
@@ -14,7 +17,8 @@ class Rule:
         return re.compile(self.pattern)
 
 
-# built-in detection rules
+# built-in detection rules. add more via --config yaml
+# TODO: add GCP service account key, Azure client secret
 DEFAULT_RULES: List[Rule] = [
     Rule(
         name="AWS Access Key ID",
@@ -42,6 +46,7 @@ DEFAULT_RULES: List[Rule] = [
     ),
     Rule(
         name="JWT Token",
+        # matches the standard 3-part base64url structure
         pattern=r"(?:^|[^A-Za-z0-9_])(eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})(?:[^A-Za-z0-9_-]|$)",
         severity="HIGH",
         description="JSON Web Token (3-part base64url)",
@@ -65,3 +70,27 @@ DEFAULT_RULES: List[Rule] = [
         description="Hardcoded password assignment",
     ),
 ]
+
+
+def load_custom_rules(config_path: str) -> List[Rule]:
+    path = Path(config_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+
+    if not data or "rules" not in data:
+        return []
+
+    rules = []
+    for entry in data["rules"]:
+        rules.append(
+            Rule(
+                name=entry["name"],
+                pattern=entry["pattern"],
+                severity=entry.get("severity", "MEDIUM"),
+                description=entry.get("description", ""),
+            )
+        )
+    return rules

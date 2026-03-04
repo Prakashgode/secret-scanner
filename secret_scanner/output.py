@@ -49,10 +49,71 @@ class JsonFormatter:
         return json.dumps(results, indent=2)
 
 
+class SarifFormatter:
+    """sarif output - works with github code scanning and vscode"""
+
+    def format(self, findings: List[Finding]) -> str:
+        sarif = {
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "SecretScanner",
+                            "version": "0.1.0",
+                            "rules": self._build_rules(findings),
+                        }
+                    },
+                    "results": [
+                        {
+                            "ruleId": f.secret_type.lower().replace(" ", "-"),
+                            "level": self._sarif_level(f.severity),
+                            "message": {"text": f"Potential {f.secret_type} detected"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {"uri": f.file},
+                                        "region": {"startLine": f.line},
+                                    }
+                                }
+                            ],
+                        }
+                        for f in findings
+                    ],
+                }
+            ],
+        }
+        return json.dumps(sarif, indent=2)
+
+    def _build_rules(self, findings: List[Finding]) -> list:
+        seen = set()
+        rules = []
+        for f in findings:
+            rule_id = f.secret_type.lower().replace(" ", "-")
+            if rule_id not in seen:
+                seen.add(rule_id)
+                rules.append({
+                    "id": rule_id,
+                    "shortDescription": {"text": f.secret_type},
+                })
+        return rules
+
+    @staticmethod
+    def _sarif_level(severity: str) -> str:
+        return {
+            "CRITICAL": "error",
+            "HIGH": "error",
+            "MEDIUM": "warning",
+            "LOW": "note",
+        }.get(severity, "note")
+
+
 def format_results(findings: List[Finding], output_format: str = "console") -> str:
     formatters = {
         "console": ConsoleFormatter,
         "json": JsonFormatter,
+        "sarif": SarifFormatter,
     }
     formatter_class = formatters.get(output_format, ConsoleFormatter)
     return formatter_class().format(findings)

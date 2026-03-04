@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
-from .rules import DEFAULT_RULES, Rule
+from .rules import DEFAULT_RULES, Rule, load_custom_rules
 
 # skip these, they'll just produce garbage matches
 BINARY_EXTENSIONS = {
@@ -21,6 +21,7 @@ BINARY_EXTENSIONS = {
 SKIP_DIRS = {
     ".git", "node_modules", "__pycache__", ".venv", "venv",
     "env", ".env", ".tox", ".mypy_cache", ".pytest_cache",
+    "dist", "build", ".eggs",
 }
 
 
@@ -57,8 +58,10 @@ class SecretScanner:
     ENTROPY_THRESHOLD = 4.5  # tuned to reduce FPs, bump up if too noisy
     MIN_ENTROPY_LENGTH = 20
 
-    def __init__(self):
+    def __init__(self, config_path: Optional[str] = None):
         self.rules: List[Rule] = list(DEFAULT_RULES)
+        if config_path:
+            self.rules.extend(load_custom_rules(config_path))
         self._compiled = [(rule, rule.compile()) for rule in self.rules]
 
     def scan_file(self, filepath: str) -> List[Finding]:
@@ -90,6 +93,42 @@ class SecretScanner:
 
         return findings
 
+    def scan_git_history(self, repo_path: str) -> List[Finding]:
+        try:
+            from git import Repo
+        except ImportError:
+            raise ImportError("GitPython required for git history scanning: pip install gitpython")
+
+        repo = Repo(repo_path)
+        findings: List[Finding] = []
+
+        # cap at 500 commits so we don't choke on huge repos
+        for commit in repo.iter_commits("--all", max_count=500):
+            if not commit.parents:
+                diffs = commit.diff(None, create_patch=True)
+            else:
+                diffs = commit.parents[0].diff(commit, create_patch=True)
+
+            for diff in diffs:
+                try:
+                    patch = diff.diff.decode("utf-8", errors="ignore")
+                except AttributeError:
+                    continue
+
+                filepath = diff.b_path or diff.a_path or "unknown"
+                for line_num, line in enumerate(patch.splitlines(), start=1):
+                    # only check added lines
+                    if line.startswith("+") and not line.startswith("+++"):
+                        added_line = line[1:]
+                        for finding in self._scan_line(
+                            f"{filepath} (commit {commit.hexsha[:8]})",
+                            line_num,
+                            added_line,
+                        ):
+                            findings.append(finding)
+
+        return findings
+
     def _scan_line(self, filepath: str, line_num: int, line: str) -> List[Finding]:
         findings: List[Finding] = []
 
@@ -107,7 +146,6 @@ class SecretScanner:
                     )
                 )
 
-        # also check entropy for things the regexes miss
         findings.extend(self._entropy_check(filepath, line_num, line))
 
         return findings

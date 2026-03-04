@@ -27,9 +27,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     scan_parser.add_argument(
         "--output",
-        choices=["console", "json"],
+        choices=["console", "json", "sarif"],
         default="console",
         help="Output format (default: console)",
+    )
+    scan_parser.add_argument(
+        "--config",
+        help="Path to custom rules YAML file",
+    )
+    scan_parser.add_argument(
+        "--git-history",
+        action="store_true",
+        help="Also scan git commit history",
     )
 
     return parser
@@ -43,7 +52,7 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    scanner = SecretScanner()
+    scanner = SecretScanner(config_path=args.config)
 
     findings: List[Finding] = []
 
@@ -54,6 +63,9 @@ def main() -> None:
     else:
         print(f"Error: path not found: {args.path}", file=sys.stderr)
         sys.exit(1)
+
+    if args.git_history:
+        findings.extend(scanner.scan_git_history(args.path))
 
     output = format_results(findings, args.output)
     print(output)
