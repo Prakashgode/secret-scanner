@@ -1,0 +1,7 @@
+- id: secret-scanner
+  name: SecretScanner
+  description: Scan for hardcoded secrets, API keys, and credentials
+  entry: secret-scanner scan --path
+  language: python
+  types: [text]
+  stages: [pre-commit]
