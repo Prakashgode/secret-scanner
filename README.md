@@ -1,5 +1,7 @@
 # secret-scanner
 
+![CI](https://github.com/Prakashgode/secret-scanner/actions/workflows/ci.yml/badge.svg)
+
 CLI tool that scans codebases and git history for hardcoded secrets — API keys, tokens, passwords, private keys, etc.
 
 ## Install
@@ -24,6 +26,34 @@ secret-scanner scan --path ./my-project --output json
 
 # custom rules
 secret-scanner scan --path ./my-project --config custom-rules.yaml
+```
+
+## Sample Output
+
+```
+$ secret-scanner scan --path ./my-project
+
+============================================================
+  SecretScanner Results: 4 finding(s)
+============================================================
+
+  [CRITICAL] AWS Access Key ID
+    File: config/settings.py:23
+    Preview: AKIA****************
+
+  [HIGH] JWT Token
+    File: api/auth.py:45
+    Preview: eyJh****************************************************
+
+  [CRITICAL] Database URL
+    File: docker-compose.yml:12
+    Preview: post************************************
+
+  [MEDIUM] Generic Password
+    File: utils/db.py:8
+    Preview: MyS3************
+
+============================================================
 ```
 
 ## What it detects
