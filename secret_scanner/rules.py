@@ -94,3 +94,4 @@ def load_custom_rules(config_path: str) -> List[Rule]:
             )
         )
     return rules
+# known false positives - base64 encoded config values
