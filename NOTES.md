@@ -29,3 +29,4 @@ start building in november, got other stuff going on rn
 - stripe key: sk_live_
 - sendgrid: SG.
 - twilio: SK[a-z0-9]{32}
+# Azure patterns - coming soon
